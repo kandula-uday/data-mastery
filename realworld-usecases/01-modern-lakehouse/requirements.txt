@@ -1,19 +1,21 @@
-# Core dependencies
+# Core dependencies - Databricks stack
 pyspark==3.4.1
 delta-spark==2.4.0
-databricks-connect==13.3.0
-databricks-sql-connector==2.9.0
 
 # Data processing
-pandas==2.0.3
-numpy==1.24.3
-pyarrow==12.0.1
+pandas<2.0.0,>=1.4.0  # Compatible with databricks-sql-connector
+numpy>=1.21.0,<2.0.0
+pyarrow>=10.0.0,<13.0.0
 
-# Data quality
-great-expectations==0.17.23
+# Databricks connectivity (install separately after core packages)
+# databricks-connect==13.3.0
+databricks-sql-connector>=2.7.0,<3.0.0
 
-# Transformation
-dbt-databricks==1.6.0
+# Data quality (optional - install separately if needed)
+# great-expectations==0.17.23
+
+# Transformation (optional - install separately if needed)
+# dbt-databricks==1.6.0
 
 # Visualization
 streamlit==1.28.0

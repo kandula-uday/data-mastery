@@ -106,31 +106,31 @@ def create_revenue_metrics(silver_df):
     return revenue_metrics
 
 
-def write_gold_table(df, target_path, table_name):
-    """Write Gold table to Delta."""
+def write_gold_table(df, table_name):
+    """Write Gold table to Delta as managed table."""
     (df.write
      .format("delta")
      .mode("overwrite")
      .option("overwriteSchema", "true")
-     .save(target_path))
+     .saveAsTable(table_name))
     
     logger.info(f"Gold table '{table_name}' written: {df.count():,} records")
 
 
 def main():
-    # Initialize Spark
+    """
+    Main function for standalone execution.
+    Note: In Databricks notebooks, use spark.table() directly!
+    """
+    # Initialize Spark (only needed for local/standalone execution)
     spark = (SparkSession.builder
              .appName("Gold_Aggregation")
              .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
              .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog")
              .getOrCreate())
     
-    # Paths
-    SILVER_PATH = "dbfs:/FileStore/lakehouse/silver/trips"
-    GOLD_BASE_PATH = "dbfs:/FileStore/lakehouse/gold/"
-    
-    # Read Silver table
-    silver_df = spark.read.format("delta").load(SILVER_PATH)
+    # Read Silver managed table
+    silver_df = spark.table("silver_trips")
     logger.info(f"Silver records loaded: {silver_df.count():,}")
     
     # Create Gold aggregates
@@ -139,11 +139,11 @@ def main():
     top_routes = create_top_routes(silver_df)
     revenue_metrics = create_revenue_metrics(silver_df)
     
-    # Write Gold tables
-    write_gold_table(daily_summary, f"{GOLD_BASE_PATH}daily_summary", "daily_summary")
-    write_gold_table(hourly_patterns, f"{GOLD_BASE_PATH}hourly_patterns", "hourly_patterns")
-    write_gold_table(top_routes, f"{GOLD_BASE_PATH}top_routes", "top_routes")
-    write_gold_table(revenue_metrics, f"{GOLD_BASE_PATH}revenue_metrics", "revenue_metrics")
+    # Write Gold tables (managed tables)
+    write_gold_table(daily_summary, "gold_daily_summary")
+    write_gold_table(hourly_patterns, "gold_hourly_patterns")
+    write_gold_table(top_routes, "gold_top_routes")
+    write_gold_table(revenue_metrics, "gold_revenue_metrics")
     
     # Display samples
     print("\n=== Daily Summary Sample ===")
@@ -163,3 +163,40 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+# ============================================================================
+# FOR DATABRICKS NOTEBOOKS: Use this simplified version instead
+# ============================================================================
+# COMMAND ----------
+# Read Silver table
+# silver = spark.table("silver_trips")
+# print(f"✅ Silver records loaded: {silver.count():,}")
+
+# COMMAND ----------
+# Create Gold aggregates
+# daily_summary = create_daily_summary(silver)
+# hourly_patterns = create_hourly_patterns(silver)
+# top_routes = create_top_routes(silver)
+# revenue_metrics = create_revenue_metrics(silver)
+
+# COMMAND ----------
+# Write Gold tables
+# write_gold_table(daily_summary, "gold_daily_summary")
+# write_gold_table(hourly_patterns, "gold_hourly_patterns")
+# write_gold_table(top_routes, "gold_top_routes")
+# write_gold_table(revenue_metrics, "gold_revenue_metrics")
+
+# COMMAND ----------
+# Preview results
+# print("=== Daily Summary Sample ===")
+# display(daily_summary.limit(10))
+# 
+# print("\n=== Top Routes Sample ===")
+# display(top_routes.limit(10))
+# 
+# print(f"\n✅ Gold layer complete!")
+# print(f"   - gold_daily_summary: {daily_summary.count():,} records")
+# print(f"   - gold_hourly_patterns: {hourly_patterns.count():,} records")
+# print(f"   - gold_top_routes: {top_routes.count():,} records")
+# print(f"   - gold_revenue_metrics: {revenue_metrics.count():,} records")

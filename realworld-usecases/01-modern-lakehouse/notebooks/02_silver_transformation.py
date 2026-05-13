@@ -52,9 +52,9 @@ def transform_to_silver(bronze_df):
                    ))
         
         # Clean amounts (round to 2 decimals)
-        .withColumn("fare_amount", spark_round(col("fare_amount"), 2))
-        .withColumn("tip_amount", spark_round(col("tip_amount"), 2))
-        .withColumn("total_amount", spark_round(col("total_amount"), 2))
+        .withColumn("fare_amount", spark_round(col("Fare_Amt"), 2))
+        .withColumn("tip_amount", spark_round(col("Tip_Amt"), 2))
+        .withColumn("total_amount", spark_round(col("Total_Amt"), 2))
         
         # Calculate tip percentage
         .withColumn("tip_percentage",
@@ -84,12 +84,9 @@ def transform_to_silver(bronze_df):
             "pickup_month",
             "pickup_day",
             "pickup_hour",
-            "pickup_location_id",
-            "dropoff_location_id",
             "passenger_count",
             "trip_distance",
             "trip_duration_minutes",
-            "rate_code_id",
             "fare_amount",
             "tip_amount",
             "total_amount",
@@ -118,39 +115,64 @@ def write_silver_table(spark, silver_df, target_path):
 
 
 def main():
-    # Initialize Spark
+    """
+    Main function for standalone execution.
+    Note: In Databricks notebooks, you don't need this - use spark.table() directly!
+    """
+    # Initialize Spark (only needed for local/standalone execution)
     spark = (SparkSession.builder
              .appName("Silver_Transformation")
              .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
              .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog")
              .getOrCreate())
     
-    # Paths
-    BRONZE_PATH = "dbfs:/FileStore/lakehouse/bronze/raw_trips"
-    SILVER_PATH = "dbfs:/FileStore/lakehouse/silver/trips"
-    
-    # Read Bronze table
-    bronze_df = spark.read.format("delta").load(BRONZE_PATH)
-    logger.info(f"Bronze records read: {bronze_df.count():,}")
+    # Read Bronze managed table
+    bronze = spark.table("bronze_raw_trips")
+    logger.info(f"Bronze records read: {bronze.count():,}")
     
     # Transform to Silver
-    silver_df = transform_to_silver(bronze_df)
+    silver = transform_to_silver(bronze)
     
     # Data quality summary
     print("\n=== Silver Layer Quality Summary ===")
-    print(f"Total clean records: {silver_df.count():,}")
-    print(f"Date range: {silver_df.agg({'pickup_date': 'min'}).collect()[0][0]} to {silver_df.agg({'pickup_date': 'max'}).collect()[0][0]}")
-    print(f"Avg fare: ${silver_df.agg({'fare_amount': 'avg'}).collect()[0][0]:.2f}")
-    print(f"Avg trip distance: {silver_df.agg({'trip_distance': 'avg'}).collect()[0][0]:.2f} miles")
+    print(f"Total clean records: {silver.count():,}")
+    print(f"Date range: {silver.agg({'pickup_date': 'min'}).collect()[0][0]} to {silver.agg({'pickup_date': 'max'}).collect()[0][0]}")
+    print(f"Avg fare: ${silver.agg({'fare_amount': 'avg'}).collect()[0][0]:.2f}")
+    print(f"Avg trip distance: {silver.agg({'trip_distance': 'avg'}).collect()[0][0]:.2f} miles")
     
-    # Write to Silver
-    write_silver_table(spark, silver_df, SILVER_PATH)
+    # Write to Silver managed table
+    silver.write.format("delta").mode("overwrite").saveAsTable("silver_trips")
+    logger.info("Silver table created: silver_trips")
     
     # Display sample
-    silver_df.show(5, truncate=False)
+    silver.show(5, truncate=False)
     
     spark.stop()
 
 
 if __name__ == "__main__":
     main()
+
+
+# ============================================================================
+# FOR DATABRICKS NOTEBOOKS: Use this simplified version instead
+# ============================================================================
+# COMMAND ----------
+# Read Bronze table
+# bronze = spark.table("bronze_raw_trips")
+# print(f"✅ Bronze records read: {bronze.count():,}")
+
+# COMMAND ----------
+# Transform to Silver
+# silver = transform_to_silver(bronze)
+
+# COMMAND ----------
+# Data quality summary
+# print("\n=== Silver Layer Quality Summary ===")
+# print(f"Total clean records: {silver.count():,}")
+# display(silver.limit(5))
+
+# COMMAND ----------
+# Write to Silver table
+# silver.write.format("delta").mode("overwrite").saveAsTable("silver_trips")
+# print("✅ Silver table created: silver_trips")
