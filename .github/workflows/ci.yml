@@ -1,0 +1,57 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r realworld-usecases/01-modern-lakehouse/requirements.txt
+        pip install pytest black flake8 isort
+    
+    - name: Lint with black
+      run: |
+        black --check realworld-usecases/01-modern-lakehouse/
+    
+    - name: Lint with flake8
+      run: |
+        flake8 realworld-usecases/01-modern-lakehouse/ --max-line-length=100 --extend-ignore=E203,W503
+    
+    - name: Check imports with isort
+      run: |
+        isort --check-only realworld-usecases/01-modern-lakehouse/
+    
+    - name: Run tests
+      run: |
+        cd realworld-usecases/01-modern-lakehouse/
+        pytest tests/ -v --cov=src --cov-report=xml
+    
+    - name: Upload coverage
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./realworld-usecases/01-modern-lakehouse/coverage.xml
+        flags: unittests
+        name: codecov-umbrella
