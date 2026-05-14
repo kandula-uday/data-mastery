@@ -1,0 +1,52 @@
+version: 2
+
+sources:
+  - name: bronze
+    description: "Bronze layer - Raw ingested data from NYC Taxi dataset"
+    schema: default
+    tables:
+      - name: bronze_raw_trips
+        description: "Raw taxi trip data with metadata columns"
+        columns:
+          - name: tpep_pickup_datetime
+            description: "Pickup timestamp"
+          - name: tpep_dropoff_datetime
+            description: "Dropoff timestamp"
+          - name: Passenger_Count
+            description: "Number of passengers"
+          - name: Trip_Distance
+            description: "Trip distance in miles"
+          - name: Fare_Amt
+            description: "Fare amount in USD"
+          - name: Tip_Amt
+            description: "Tip amount in USD"
+          - name: Total_Amt
+            description: "Total amount paid"
+          - name: ingested_at
+            description: "Timestamp when data was ingested"
+          - name: source_file
+            description: "Source CSV file name"
+
+  - name: silver
+    description: "Silver layer - Cleaned and transformed data"
+    schema: default
+    tables:
+      - name: silver_trips
+        description: "Cleaned taxi trip data with calculated fields"
+        columns:
+          - name: pickup_datetime
+            description: "Parsed pickup timestamp"
+          - name: dropoff_datetime
+            description: "Parsed dropoff timestamp"
+          - name: pickup_date
+            description: "Pickup date (YYYY-MM-DD)"
+          - name: trip_distance
+            description: "Trip distance in miles"
+          - name: fare_amount
+            description: "Fare amount in USD"
+          - name: tip_amount
+            description: "Tip amount in USD"
+          - name: tip_percentage
+            description: "Tip as percentage of fare"
+          - name: trip_duration_minutes
+            description: "Trip duration in minutes"

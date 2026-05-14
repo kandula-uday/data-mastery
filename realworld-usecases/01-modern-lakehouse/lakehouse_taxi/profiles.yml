@@ -1,0 +1,24 @@
+# dbt profiles configuration for Databricks
+# This file connects dbt to your Databricks lakehouse
+# Copy this to ~/.dbt/profiles.yml
+
+lakehouse_taxi:
+  target: dev
+  outputs:
+    dev:
+      type: databricks
+      host: dbc-cf57b4f9-06bc.cloud.databricks.com
+      http_path: /sql/1.0/warehouses/dbde1f63dc7cda4b
+      token: "{{ env_var('DATABRICKS_TOKEN') }}"
+      schema: default  # Database name in default catalog
+      threads: 4
+      connect_timeout: 60
+      connect_retries: 3
+
+    prod:
+      type: databricks
+      host: dbc-cf57b4f9-06bc.cloud.databricks.com
+      http_path: /sql/1.0/warehouses/dbde1f63dc7cda4b
+      token: "{{ env_var('DATABRICKS_TOKEN') }}"
+      schema: default
+      threads: 8

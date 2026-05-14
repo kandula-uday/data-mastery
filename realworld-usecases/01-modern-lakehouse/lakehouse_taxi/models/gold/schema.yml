@@ -1,0 +1,212 @@
+version: 2
+
+models:
+  - name: gold_daily_summary
+    description: "Daily aggregated metrics for business reporting"
+    
+    # Table-level tests
+    tests:
+      - dbt_utils.recency:
+          datepart: day
+          field: pickup_date
+          interval: 30  # Data should be within 30 days
+          config:
+            severity: warn
+    
+    columns:
+      - name: pickup_date
+        description: "Date of trips"
+        tests:
+          - unique
+          - not_null
+      
+      - name: total_trips
+        description: "Total number of trips for the day"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1000000
+              config:
+                severity: error
+      
+      - name: total_revenue
+        description: "Total fare revenue for the day"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 10000000
+      
+      - name: avg_fare
+        description: "Average fare amount"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 500
+      
+      - name: avg_tip_percentage
+        description: "Average tip as percentage of fare"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
+              config:
+                severity: error
+      
+      - name: total_distance_miles
+        description: "Total distance traveled"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+
+  - name: gold_hourly_patterns
+    description: "Hourly demand patterns for operational planning"
+    
+    columns:
+      - name: pickup_date
+        description: "Date of trips"
+        tests:
+          - not_null
+      
+      - name: pickup_hour
+        description: "Hour of day (0-23)"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 23
+              config:
+                severity: error
+      
+      - name: trip_count
+        description: "Number of trips in this hour"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+      
+      - name: time_period
+        description: "Time classification"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Morning Rush', 'Midday', 'Evening Rush', 'Evening', 'Late Night']
+      
+      - name: pct_of_daily_trips
+        description: "Percentage of daily trips in this hour"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1
+              inclusive: true
+
+  - name: gold_top_routes
+    description: "Most popular pickup/dropoff location pairs"
+    
+    tests:
+      - dbt_utils.expression_is_true:
+          expression: "total_trips >= 10"
+          config:
+            severity: warn
+    
+    columns:
+      - name: pickup_location_id
+        description: "Pickup location identifier"
+        tests:
+          - not_null
+      
+      - name: dropoff_location_id
+        description: "Dropoff location identifier"
+        tests:
+          - not_null
+      
+      - name: total_trips
+        description: "Total trips on this route"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 10  # Minimum threshold
+      
+      - name: trip_rank
+        description: "Ranking by trip volume"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 1
+              max_value: 500
+      
+      - name: avg_fare
+        description: "Average fare for this route"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1000
+      
+      - name: profitability_score
+        description: "Composite profitability metric"
+        tests:
+          - not_null
+
+  - name: gold_revenue_by_payment
+    description: "Revenue analytics by payment method"
+    
+    columns:
+      - name: pickup_date
+        description: "Transaction date"
+        tests:
+          - not_null
+      
+      - name: payment_type
+        description: "Payment method used"
+        tests:
+          - not_null
+      
+      - name: transaction_count
+        description: "Number of transactions"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+      
+      - name: total_revenue
+        description: "Total revenue for payment type"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+      
+      - name: pct_of_daily_transactions
+        description: "Percentage of daily transactions"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
+      
+      - name: pct_of_daily_revenue
+        description: "Percentage of daily revenue"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
+      
+      - name: tip_rate
+        description: "Percentage of trips with tips"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
+      
+      - name: tip_category
+        description: "Tip rate classification"
+        tests:
+          - accepted_values:
+              values: ['High Tip Rate', 'Medium Tip Rate', 'Low Tip Rate', 'No Tips']
+      
+      - name: fare_tier
+        description: "Fare amount classification"
+        tests:
+          - accepted_values:
+              values: ['Premium', 'Standard', 'Economy']
