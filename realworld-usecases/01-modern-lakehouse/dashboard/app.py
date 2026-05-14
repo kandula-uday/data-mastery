@@ -48,6 +48,20 @@ def get_connection():
     """Establish connection to Databricks SQL Warehouse."""
     try:
         connection = sql.connect(
+            server_hostname=os.getenv("DATABRICKS_HOST"),
+            http_path=os.getenv("DATABRICKS_HTTP_PATH"),
+            access_token=os.getenv("DATABRICKS_TOKEN")
+        )
+        return connection
+    except Exception as e:
+        st.error(f"Failed to connect to Databricks: {e}")
+        return None
+
+
+@st.cache_data(ttl=300)  # Cache for 5 minutes
+def fetch_daily_summary():
+    """Fetch data from gold_daily_summary table."""
+    connection = get_connection(
             server_hostname=os.getenv("DATABRICKS_HOST", "").replace("https://", ""),
             http_path=os.getenv("DATABRICKS_HTTP_PATH"),
             access_token=os.getenv("DATABRICKS_TOKEN")
