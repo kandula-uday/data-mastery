@@ -3,6 +3,7 @@ version: 2
 sources:
   - name: bronze
     description: "Bronze layer - Raw ingested data from NYC Taxi dataset"
+    database: hive_metastore
     schema: default
     tables:
       - name: bronze_raw_trips
@@ -29,6 +30,7 @@ sources:
 
   - name: silver
     description: "Silver layer - Cleaned and transformed data"
+    database: hive_metastore
     schema: default
     tables:
       - name: silver_trips

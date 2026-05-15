@@ -10,7 +10,8 @@ lakehouse_taxi:
       host: dbc-cf57b4f9-06bc.cloud.databricks.com
       http_path: /sql/1.0/warehouses/dbde1f63dc7cda4b
       token: "{{ env_var('DATABRICKS_TOKEN') }}"
-      schema: default  # Database name in default catalog
+      catalog: hive_metastore  # Explicitly use Hive Metastore
+      schema: default  # Database name
       threads: 4
       connect_timeout: 60
       connect_retries: 3

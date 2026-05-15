@@ -1,0 +1,14 @@
+# Apache Airflow Requirements
+# ============================
+
+# Core Airflow
+apache-airflow==2.9.1
+
+# Airflow Providers
+apache-airflow-providers-databricks==6.1.0
+
+# Database (PostgreSQL recommended for production)
+psycopg2-binary==2.9.9
+
+# Python utilities
+python-dotenv==1.0.1
