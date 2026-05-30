@@ -7,7 +7,7 @@ import os
 
 if __name__ == "__main__":
     # Path to raw data file
-    input_file = "/Users/udayshankar/Documents/JOB/FinanceFlow/data/raw/budgetwise_finance_dataset.csv"
+    input_file = "data/raw/budgetwise_finance_dataset.csv"
     
     # Check if file exists
     if not os.path.exists(input_file):

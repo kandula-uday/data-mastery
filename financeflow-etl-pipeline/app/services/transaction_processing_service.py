@@ -6,11 +6,17 @@ from datetime import datetime
 from app.validations.amount_validator import validate_amount
 from app.validations.category_validator import validate_category
 from app.validations.date_validator import validate_date
+from app.validations.location_validator import validate_location
+from app.validations.notes_validator import validate_notes
+from app.validations.payment_mode_validator import validate_payment_mode
 
 # Import cleaners
 from app.utils.amount_cleaner import clean_amount
 from app.utils.category_cleaner import clean_category
 from app.utils.date_cleaner import clean_date
+from app.utils.location_cleaner import clean_location
+from app.utils.notes_cleaner import clean_notes
+from app.utils.payment_mode_cleaner import clean_payment_mode
 
 
 # Track processed transaction IDs to detect duplicates
@@ -189,6 +195,27 @@ def validate_record(record):
     if not category_valid:
         errors.append(f"Category validation failed: {category_error} (original: {record['category']})")
     
+    # Validate location (optional field, cleaned version handles null/N/A)
+    if 'location' in record:
+        cleaned_location = clean_location(record['location'])
+        location_valid, location_error = validate_location(cleaned_location)
+        if not location_valid:
+            errors.append(f"Location validation failed: {location_error}")
+    
+    # Validate notes (optional field, cleaned version handles special characters)
+    if 'notes' in record:
+        cleaned_notes = clean_notes(record['notes'])
+        notes_valid, notes_error = validate_notes(cleaned_notes)
+        if not notes_valid:
+            errors.append(f"Notes validation failed: {notes_error}")
+    
+    # Validate payment_mode (optional field, cleaned version standardizes values)
+    if 'payment_mode' in record:
+        cleaned_payment_mode = clean_payment_mode(record['payment_mode'])
+        payment_mode_valid, payment_mode_error = validate_payment_mode(cleaned_payment_mode)
+        if not payment_mode_valid:
+            errors.append(f"Payment mode validation failed: {payment_mode_error}")
+    
     if errors:
         return False, errors
     
@@ -203,6 +230,9 @@ def clean_record(record):
     - Standardize dates to YYYY-MM-DD format (handles multiple input formats)
     - Clean amount format (removes currency symbols: Rs., ₹, $, INR)
     - Normalize category names (fixes typos and standardizes variations)
+    - Clean location (null/N/A → "Unknown", standardize city codes)
+    - Clean notes (remove special characters, null invalid values)
+    - Clean payment_mode (standardize variations: csh→cash, Bank Transfer→bank_transfer)
     - Trim unwanted spaces/symbols
 
     Args:
@@ -228,8 +258,23 @@ def clean_record(record):
     if 'category' in cleaned:
         cleaned['category'] = clean_category(cleaned['category'])
     
-    # Clean string fields (trim whitespace)
-    string_fields = ['transaction_type', 'payment_mode', 'location', 'notes']
+    # Clean location - standardizes city codes and handles null/N/A
+    # Examples: BAN→Bangalore, N/A→Unknown, null→Unknown
+    if 'location' in cleaned:
+        cleaned['location'] = clean_location(cleaned['location'])
+    
+    # Clean notes - removes special characters and invalid placeholders
+    # Examples: "..."→null, "test"→null, "asdfgh"→null
+    if 'notes' in cleaned:
+        cleaned['notes'] = clean_notes(cleaned['notes'])
+    
+    # Clean payment_mode - standardizes variations
+    # Examples: csh→cash, Bank Transfer→bank_transfer, null→unknown
+    if 'payment_mode' in cleaned:
+        cleaned['payment_mode'] = clean_payment_mode(cleaned['payment_mode'])
+    
+    # Clean remaining string fields (trim whitespace)
+    string_fields = ['transaction_type']
     for field in string_fields:
         if field in cleaned and pd.notna(cleaned[field]):
             cleaned[field] = str(cleaned[field]).strip()
@@ -280,6 +325,7 @@ def save_processed_data(valid_records, output_file_path):
     
     try:
         df = pd.DataFrame(valid_records)
+        # Save to CSV - notes field now uses "NaN" string for empty values
         df.to_csv(output_file_path, index=False)
         print(f"Saved {len(valid_records)} valid records to {output_file_path}")
     except Exception as e:
@@ -303,6 +349,7 @@ def save_invalid_data(invalid_records, output_file_path):
     
     try:
         df = pd.DataFrame(invalid_records)
+        # Save to CSV
         df.to_csv(output_file_path, index=False)
         print(f"Saved {len(invalid_records)} invalid records to {output_file_path}")
     except Exception as e:
